@@ -83,7 +83,7 @@
 
         textarea {
             height: 180px;
-            resize: vertical;
+            resize: ical;
         }
 
         .button-row {
@@ -424,7 +424,7 @@ function analyzeText() {
             const lowerLine = line.toLowerCase();
 
             if (!insideMainBody && hasBodyAnchors) {
-                if (/^executive summary\$/i.test(lowerLine) || /^summary\(/i.test(lowerLine) \vert{}\vert{} /^introduction\)/i.test(lowerLine)) {
+                if (/^executive summary\$/i.test(lowerLine) || /^summary\(/i.test(lowerLine) || /^introduction\)/i.test(lowerLine)) {
                     insideMainBody = true;
                 }
             } else if (!hasBodyAnchors) {
@@ -439,7 +439,7 @@ function analyzeText() {
             }
 
             if (insideMainBody && !lateForceIncludeBlock) {
-                if (/^references\(/i.test(lowerLine) \vert{}\vert{} /^sources\)/i.test(lowerLine) || /^bibliography\(/i.test(lowerLine) \vert{}\vert{} /^endnotes\)/i.test(lowerLine)) {
+                if (/^references\(/i.test(lowerLine) || /^sources\)/i.test(lowerLine) || /^bibliography\(/i.test(lowerLine) || /^endnotes\)/i.test(lowerLine)) {
                     insideMainBody = false;
                 }
             }

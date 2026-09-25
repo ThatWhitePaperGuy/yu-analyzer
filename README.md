@@ -12,7 +12,7 @@ This tool is designed to run as a local widget. **No data or text ever leaves yo
 
 ### To Analyze Your Text
 1. Open your white paper PDF in your preferred viewer (Acrobat, Preview, or Chrome). Or open your Word file in Word. 
-2. Press Control+A in Mac or Cmd+A in Windows to highlight all the text, then copy all text (Cmd+C).
+2. Press Command+A in Mac or Cntrl+A in Windows to highlight all the text, then copy all text.
 3. Paste the text directly into the **Text to Analyze** box.
 4. Enter the **Vendor Name** and any specific **Product Names** to set up the smart-filtering logic.
 5. Click **Analyze Text**.

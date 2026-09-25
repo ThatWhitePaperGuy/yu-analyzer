@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YU Ratio Analyzer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: #f5f7fb;
+            color: #222;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 750px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.35rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            color: #555;
+            margin-bottom: 1.75rem;
+            font-size: 0.95rem;
+        }
+
+        .beta-tag {
+            font-size: 0.75rem;
+            background: #e2e6f0;
+            color: #4a5568;
+            padding: 3px 8px;
+            border-radius: 999px;
+            vertical-align: middle;
+            margin-left: 6px;
+            font-weight: 600;
+        }
+
+        .field-row {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #ccd2e0;
+            font-size: 1rem;
+            background: #fff;
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #2aa8d6;
+            box-shadow: 0 0 0 3px rgba(42,168,214,0.18);
+        }
+
+        textarea {
+            height: 180px;
+            resize: vertical;
+        }
+
+        .button-row {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        button {
+            padding: 0.9rem 2rem;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            font-size: 1.15rem;
+            font-weight: 700;
+            transition: all 0.15s ease;
+        }
+
+        #analyzeBtn {
+            background: #2aa8d6;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(42,168,214,0.25);
+            flex: 2;
+        }
+
+        #analyzeBtn:hover {
+            background: #248fb5;
+            transform: translateY(-1px);
+        }
+
+        #clearBtn {
+            background: #e2e6f0;
+            color: #333;
+            flex: 1;
+        }
+
+        #clearBtn:hover {
+            background: #cfd4e4;
+        }
+
+        .results {
+            margin-top: 2.5rem;
+            border-top: 2px dashed #e2e6f0;
+            padding-top: 2rem;
+        }
+
+        .results h2 {
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat {
+            background: #f5f7fb;
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid #eef2f7;
+        }
+
+        .stat .label {
+            display: block;
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat .value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .stat.highlight-ratio {
+            background: #e4f5fb;
+            border-color: #bce4f3;
+        }
+        
+        .stat.highlight-ratio .value {
+            color: #145a72;
+            font-size: 1.5rem;
+        }
+
+        .rating {
+            padding: 1.25rem;
+            border-radius: 12px;
+            margin-top: 0.5rem;
+            border: 1px solid transparent;
+            text-align: center;
+        }
+
+        .rating h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.35rem;
+            font-weight: 700;
+        }
+
+        .rating p {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .rating-excellent {
+            background: #e3f6e3;
+            border: 1px solid #1a7f1a;
+            color: #135713;
+        }
+
+        .rating-pretty {
+            background: #e4f5fb;
+            border: 1px solid #2aa8d6;
+            color: #145a72;
+        }
+
+        .rating-warning {
+            background: #fff1e0;
+            border: 1px solid #cc7a1a;
+            color: #804c0f;
+        }
+
+        .rating-danger {
+            background: #ffe4e4;
+            border: 1px solid #e02424;
+            color: #8b1515;
+        }
+
+        @keyframes slowPulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.55; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes slowFlash {
+            0% { opacity: 1; }
+            50% { opacity: 0.15; }
+            100% { opacity: 1; }
+        }
+
+        .rating-warning.pulsing {
+            animation: slowPulse 2.5s infinite;
+        }
+
+        .rating-danger.flashing {
+            animation: slowFlash 1.2s infinite;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>YU Ratio Analyzer <span class="beta-tag">v1.0 BETA</span></h1>
+        <p>All logic runs in the browser. No text leaves the page.</p>
+    </header>
+
+    <div class="inputs">
+        <div class="field-row">
+            <label for="vendorName">Vendor Name</label>
+            <input type="text" id="vendorName" placeholder="e.g., Acme Software">
+        </div>
+
+        <div class="field-row">
+            <label for="productNames">Product Names (comma separated)</label>
+            <input type="text" id="productNames" placeholder="e.g., CloudApp, FastData">
+        </div>
+
+        <div class="field-row">
+            <label for="whitepaperText">Text to Analyze</label>
+            <textarea id="whitepaperText" placeholder="Paste your whitepaper or copy here..."></textarea>
+        </div>
+
+        <div class="button-row">
+            <button id="analyzeBtn">Analyze Text</button>
+            <button id="clearBtn">Clear</button>
+        </div>
+    </div>
+
+    <div id="results" class="results hidden">
+        <h2>Analysis Results</h2>
+        <div class="stats">
+            <div class="stat">
+                <span class="label">Total Words</span>
+                <span id="totalWords" class="value">0</span>
+            </div>
+            <div class="stat">
+                <span class="label">"Us" Words</span>
+                <span id="usWords" class="value">0</span>
+            </div>
+            <div class="stat">
+                <span class="label">"You" Words</span>
+                <span id="youWords" class="value">0</span>
+            </div>
+            <div class="stat highlight-ratio">
+                <span class="label">YOU Ratio</span>
+                <span id="yuRatio" class="value">0%</span>
+            </div>
+        </div>
+        <div id="rating" class="rating">
+            <h3 id="ratingLabel"></h3>
+            <p id="ratingMessage"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+}
+
+function wordCount(text) {
+    const matches = text.match(/\b[\p{L}\p{N}']+\b/gu);
+    return matches ? matches.length : 0;
+}
+
+function splitSentences(text) {
+    return text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+}
+
+function isHeadingLine(line, ctx) {
+    const t = line.trim();
+    if (!t || t.length > 100) return false;
+    const lower = t.toLowerCase();
+
+    const specificHeadingPatterns = [
+        /^about$/i, /^about us$/i, /^about the company$/i,
+        /^company overview$/i, /^company profile$/i, /^company history$/i,
+        /^contact$/i, /^contact us$/i,
+        /^leadership$/i, /^founders$/i, /^our story$/i, /^why choose us$/i
+    ];
+
+    for (const pattern of specificHeadingPatterns) {
+        if (pattern.test(lower)) return true;
+    }
+
+    if (ctx.vendorLower) {
+        const vendorHeadingPattern = new RegExp("^about\\s+" + escapeRegExp(ctx.vendorLower) + "$", "i");
+        if (vendorHeadingPattern.test(lower)) return true;
+    }
+
+    return false;
+}
+
+function isNoiseLine(t) {
+    const lower = t.toLowerCase();
+    const wc = wordCount(t);
+
+    if (/^\d+$/.test(t)) return true;
+    if (/^page\s+\d+$/i.test(t)) return true;
+    if (/^\d+\s*\/\s*\d+$/.test(t)) return true;
+    if (/^[ivxlcdm]+$/i.test(t)) return true;
+
+    if (/^table of contents\b/i.test(lower)) return true;
+    if (/^contents\b/i.test(lower)) return true;
+    if (/^figure\s+\d+/i.test(lower)) return true;
+    if (/^fig\.\s*\d+/i.test(lower)) return true;
+    if (/^table\s+\d+/i.test(lower)) return true;
+    if (/copyright/i.test(lower) && wc < 15) return true;
+
+    if (wc < 5 && !/[a-zA-Z]{3,}/.test(t)) return true;
+
+    return false;
+}
+
+function buildContext(vendorName, productNames) {
+    const vendor = (vendorName || "").trim();
+    const vendorLower = vendor.toLowerCase();
+    
+    const splitArr = vendorLower.split(/\s+/);
+    const vendorRoot = splitArr.length > 0 ? splitArr[0] : "";
+
+    const products = (productNames || "").split(",").map(s => s.trim()).filter(Boolean);
+    const productLower = products.map(p => p.toLowerCase());
+
+    const pronouns = ["we", "us", "our", "ours", "my", "mine"];

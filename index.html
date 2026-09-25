@@ -83,7 +83,7 @@
 
         textarea {
             height: 180px;
-            resize: ical;
+            resize: vertical;
         }
 
         .button-row {
@@ -99,7 +99,8 @@
             cursor: pointer;
             font-size: 1.15rem;
             font-weight: 700;
-            transition: all 0.15s ease;
+            transition: all 0.1s ease;
+            user-select: none;
         }
 
         #analyzeBtn {
@@ -109,20 +110,16 @@
             flex: 2;
         }
 
-        #analyzeBtn:hover {
-            background: #248fb5;
-            transform: translateY(-1px);
-        }
+        #analyzeBtn:hover { background: #248fb5; }
+        #analyzeBtn:active { background: #1a6985; transform: scale(0.98); }
 
         #clearBtn {
             background: #e2e6f0;
             color: #333;
             flex: 1;
         }
-
-        #clearBtn:hover {
-            background: #cfd4e4;
-        }
+        #clearBtn:hover { background: #cfd4e4; }
+        #clearBtn:active { background: #b8bed0; }
 
         .results {
             margin-top: 2.5rem;
@@ -182,64 +179,19 @@
             text-align: center;
         }
 
-        .rating h3 {
-            font-size: 1.25rem;
-            margin-bottom: 0.35rem;
-            font-weight: 700;
-        }
+        .rating h3 { font-size: 1.25rem; margin-bottom: 0.35rem; font-weight: 700; }
+        .rating p { font-size: 0.95rem; font-weight: 500; }
 
-        .rating p {
-            font-size: 0.95rem;
-            font-weight: 500;
-        }
+        .rating-excellent { background: #e3f6e3; border: 1px solid #1a7f1a; color: #135713; }
+        .rating-pretty { background: #e4f5fb; border: 1px solid #2aa8d6; color: #145a72; }
+        .rating-warning { background: #fff1e0; border: 1px solid #cc7a1a; color: #804c0f; }
+        .rating-danger { background: #ffe4e4; border: 1px solid #e02424; color: #8b1515; }
 
-        .rating-excellent {
-            background: #e3f6e3;
-            border: 1px solid #1a7f1a;
-            color: #135713;
-        }
-
-        .rating-pretty {
-            background: #e4f5fb;
-            border: 1px solid #2aa8d6;
-            color: #145a72;
-        }
-
-        .rating-warning {
-            background: #fff1e0;
-            border: 1px solid #cc7a1a;
-            color: #804c0f;
-        }
-
-        .rating-danger {
-            background: #ffe4e4;
-            border: 1px solid #e02424;
-            color: #8b1515;
-        }
-
-        @keyframes slowPulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.55; }
-            100% { opacity: 1; }
-        }
-
-        @keyframes slowFlash {
-            0% { opacity: 1; }
-            50% { opacity: 0.15; }
-            100% { opacity: 1; }
-        }
-
-        .rating-warning.pulsing {
-            animation: slowPulse 2.5s infinite;
-        }
-
-        .rating-danger.flashing {
-            animation: slowFlash 1.2s infinite;
-        }
-
-        .hidden {
-            display: none !important;
-        }
+        @keyframes slowPulse { 0% { opacity: 1; } 50% { opacity: 0.55; } 100% { opacity: 1; } }
+        @keyframes slowFlash { 0% { opacity: 1; } 50% { opacity: 0.15; } 100% { opacity: 1; } }
+        .rating-warning.pulsing { animation: slowPulse 2.5s infinite; }
+        .rating-danger.flashing { animation: slowFlash 1.2s infinite; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -301,16 +253,17 @@
 
 <script>
 function escapeRegExp(string) {
-    return string.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+    return string.replace(/[.*+?^${}()|[\]\/]/g, '\$&');
 }
 
 function wordCount(text) {
-    const matches = text.match(/\b[\p{L}\p{N}']+\b/gu);
+    const matches = text.match(/[\p{L}\p{N}']+/gu);
     return matches ? matches.length : 0;
 }
 
 function splitSentences(text) {
-    return text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+    let cleanText = text.replace(/(?<=[.!?])(?=[A-Z])/g, " ");
+    return cleanText.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
 }
 
 function isHeadingLine(line, ctx) {
@@ -321,7 +274,7 @@ function isHeadingLine(line, ctx) {
     const specificHeadingPatterns = [
         /^about$/i, /^about us$/i, /^about the company$/i,
         /^company overview$/i, /^company profile$/i, /^company history$/i,
-        /^contact$/i, /^contact us$/i,
+        /^\s*contact\s*$/i, /^\s*contact us\s*$/i,
         /^leadership$/i, /^founders$/i, /^our story$/i, /^why choose us$/i
     ];
 
@@ -330,7 +283,7 @@ function isHeadingLine(line, ctx) {
     }
 
     if (ctx.vendorLower) {
-        const vendorHeadingPattern = new RegExp("^about\\s+" + escapeRegExp(ctx.vendorLower) + "$", "i");
+        const vendorHeadingPattern = new RegExp("^about\s+" + escapeRegExp(ctx.vendorLower) + "$", "i");
         if (vendorHeadingPattern.test(lower)) return true;
     }
 
@@ -346,8 +299,8 @@ function isNoiseLine(t) {
     if (/^\d+\s*\/\s*\d+$/.test(t)) return true;
     if (/^[ivxlcdm]+$/i.test(t)) return true;
 
-    if (/^table of contents\b/i.test(lower)) return true;
-    if (/^contents\b/i.test(lower)) return true;
+    if (/^table of contents/i.test(lower)) return true;
+    if (/^contents/i.test(lower)) return true;
     if (/^figure\s+\d+/i.test(lower)) return true;
     if (/^fig\.\s*\d+/i.test(lower)) return true;
     if (/^table\s+\d+/i.test(lower)) return true;
@@ -369,37 +322,40 @@ function buildContext(vendorName, productNames) {
     const productLower = products.map(p => p.toLowerCase());
 
     const pronouns = ["we", "us", "our", "ours", "my", "mine"];
-        const descriptors = ["the vendor", "the provider", "the supplier", "the platform", "the solution", "the offering", "the company", "our company", "our team", "our technology", "our platform", "our products", "our services"];
+    const descriptors = ["the vendor", "the provider", "the supplier", "the platform", "the solution", "the offering", "the company", "our company", "our team", "our technology", "our platform", "our products", "our services"];
 
     const patterns = [
-        /\bour\s+\w+\s+\w+/i, 
-        /\bwe\s+\w+/i, 
-        /\bthis\s+\w+\s+lets\s+us\s+\w+/i,
-        /\bthe company\s+\w+/i
+        /our\s+\w+\s+\w+/i, 
+        /we\s+\w+/i, 
+        /this\s+\w+\s+lets\s+us\s+\w+/i,
+        /the company\s+\w+/i
     ];
 
     if (vendorLower) {
-        patterns.push(new RegExp("\\b" + escapeRegExp(vendorLower) + "\\s+\\w+", "i"));
+        patterns.push(new RegExp("\b" + escapeRegExp(vendorLower) + "\s+\w+", "i"));
         if (vendorRoot && vendorRoot !== vendorLower) {
-            patterns.push(new RegExp("\\b" + escapeRegExp(vendorRoot) + "\\s+\\w+", "i"));
+            patterns.push(new RegExp("\b" + escapeRegExp(vendorRoot) + "\s+\w+", "i"));
         }
     }
 
     const regexTokens = [];
-    if (vendorLower) regexTokens.push(new RegExp("\\b" + escapeRegExp(vendorLower) + "\\b", "i"));
-    if (vendorRoot && vendorRoot !== vendorLower) regexTokens.push(new RegExp("\\b" + escapeRegExp(vendorRoot) + "\\b", "i"));
-    productLower.forEach(p => regexTokens.push(new RegExp("\\b" + escapeRegExp(p) + "\\b", "i")));
+    if (vendorLower) regexTokens.push(new RegExp("\b" + escapeRegExp(vendorLower) + "\b", "i"));
+    if (vendorRoot && vendorRoot !== vendorLower) regexTokens.push(new RegExp("\b" + escapeRegExp(vendorRoot) + "\b", "i"));
+    productLower.forEach(p => regexTokens.push(new RegExp("\b" + escapeRegExp(p) + "\b", "i")));
 
     return { pronouns, descriptors, regexTokens, patterns, vendorLower };
 }
 
 function isUSSentence(sentence, ctx) {
     const s = sentence.toLowerCase();
-    for (const p of ctx.pronouns) { if (new RegExp("\\b" + p + "\\b", "i").test(s)) return true; }
+
+    for (const p of ctx.pronouns) { if (new RegExp("\b" + p + "\b", "i").test(s)) return true; }
     for (const r of ctx.regexTokens) { if (r.test(s)) return true; }
-    for (const d of ctx.descriptors) { if (new RegExp("\\b" + escapeRegExp(d) + "\\b", "i").test(s)) return true; }
+    for (const d of ctx.descriptors) { if (new RegExp("\b" + escapeRegExp(d) + "\b", "i").test(s)) return true; }
     for (const p of ctx.patterns) { if (p.test(s)) return true; }
+
     if (/the company reports/i.test(s) || /the vendor states/i.test(s) || /according to our/i.test(s)) return true;
+
     return false;
 }
 
@@ -410,13 +366,14 @@ function analyzeText() {
         const rawText = document.getElementById("whitepaperText").value || "";
 
         const ctx = buildContext(vendorName, productNames);
-        const rawLines = rawText.split('\n').map(l => l.trim());
+        let structuralText = rawText.replace(/([a-z0-9])([A-Z])/g, '$1\n$2');
+        const rawLines = structuralText.split('\n').map(l => l.trim());
         
         let processedBlocks = [];
         let insideMainBody = false;
         let lateForceIncludeBlock = false;
 
-        const cleanLowerText = rawText.toLowerCase();
+        const cleanLowerText = structuralText.toLowerCase();
         const hasBodyAnchors = /\bexecutive summary\b/i.test(cleanLowerText) || /\bsummary\b/i.test(cleanLowerText) || /\bintroduction\b/i.test(cleanLowerText);
 
         rawLines.forEach(line => {
@@ -424,30 +381,28 @@ function analyzeText() {
             const lowerLine = line.toLowerCase();
 
             if (!insideMainBody && hasBodyAnchors) {
-                if (/^executive summary\$/i.test(lowerLine) || /^summary\(/i.test(lowerLine) || /^introduction\)/i.test(lowerLine)) {
+                if (/executive summary/i.test(lowerLine) || /summary/i.test(lowerLine) || /introduction/i.test(lowerLine)) {
                     insideMainBody = true;
                 }
             } else if (!hasBodyAnchors) {
                 insideMainBody = true;
             }
 
-            if (/^about the company\$/i.test(lowerLine) || /^contact us\$/i.test(lowerLine) || /^about us\$/i.test(lowerLine)) {
+            if (/about the company/i.test(lowerLine) || /contact us/i.test(lowerLine) || /about us/i.test(lowerLine)) {
                 lateForceIncludeBlock = true;
             }
-            if (ctx.vendorLower && lowerLine === `about ${ctx.vendorLower}`) {
+            if (ctx.vendorLower && lowerLine.includes(`about ${ctx.vendorLower}`)) {
                 lateForceIncludeBlock = true;
             }
 
             if (insideMainBody && !lateForceIncludeBlock) {
-                if (/^references\(/i.test(lowerLine) || /^sources\)/i.test(lowerLine) || /^bibliography\(/i.test(lowerLine) || /^endnotes\)/i.test(lowerLine)) {
+                if (/references/i.test(lowerLine) || /sources/i.test(lowerLine) || /bibliography/i.test(lowerLine) || /endnotes/i.test(lowerLine)) {
                     insideMainBody = false;
                 }
             }
 
             if (insideMainBody || lateForceIncludeBlock) {
-                if (!isNoiseLine(line)) {
-                    processedBlocks.push(line);
-                }
+                if (!isNoiseLine(line)) { processedBlocks.push(line); }
             }
         });
 
@@ -461,7 +416,7 @@ function analyzeText() {
                 return;
             }
 
-            if (block.length < 60 && /^[A-Z][A-Za-z\s]{2,30}\$/.test(block) && !isHeadingLine(block, ctx)) {
+            if (block.length < 60 && /^[A-Z][A-Za-z\\s]{2,30}$/.test(block) && !isHeadingLine(block, ctx)) {
                 fallbackToUSSectionState = false;
             }
 
@@ -531,4 +486,3 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
-

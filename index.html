@@ -369,4 +369,166 @@ function buildContext(vendorName, productNames) {
     const productLower = products.map(p => p.toLowerCase());
 
     const pronouns = ["we", "us", "our", "ours", "my", "mine"];
-    </body>
+        const descriptors = ["the vendor", "the provider", "the supplier", "the platform", "the solution", "the offering", "the company", "our company", "our team", "our technology", "our platform", "our products", "our services"];
+
+    const patterns = [
+        /\bour\s+\w+\s+\w+/i, 
+        /\bwe\s+\w+/i, 
+        /\bthis\s+\w+\s+lets\s+us\s+\w+/i,
+        /\bthe company\s+\w+/i
+    ];
+
+    if (vendorLower) {
+        patterns.push(new RegExp("\\b" + escapeRegExp(vendorLower) + "\\s+\\w+", "i"));
+        if (vendorRoot && vendorRoot !== vendorLower) {
+            patterns.push(new RegExp("\\b" + escapeRegExp(vendorRoot) + "\\s+\\w+", "i"));
+        }
+    }
+
+    const regexTokens = [];
+    if (vendorLower) regexTokens.push(new RegExp("\\b" + escapeRegExp(vendorLower) + "\\b", "i"));
+    if (vendorRoot && vendorRoot !== vendorLower) regexTokens.push(new RegExp("\\b" + escapeRegExp(vendorRoot) + "\\b", "i"));
+    productLower.forEach(p => regexTokens.push(new RegExp("\\b" + escapeRegExp(p) + "\\b", "i")));
+
+    return { pronouns, descriptors, regexTokens, patterns, vendorLower };
+}
+
+function isUSSentence(sentence, ctx) {
+    const s = sentence.toLowerCase();
+    for (const p of ctx.pronouns) { if (new RegExp("\\b" + p + "\\b", "i").test(s)) return true; }
+    for (const r of ctx.regexTokens) { if (r.test(s)) return true; }
+    for (const d of ctx.descriptors) { if (new RegExp("\\b" + escapeRegExp(d) + "\\b", "i").test(s)) return true; }
+    for (const p of ctx.patterns) { if (p.test(s)) return true; }
+    if (/the company reports/i.test(s) || /the vendor states/i.test(s) || /according to our/i.test(s)) return true;
+    return false;
+}
+
+function analyzeText() {
+    try {
+        const vendorName = document.getElementById("vendorName").value;
+        const productNames = document.getElementById("productNames").value;
+        const rawText = document.getElementById("whitepaperText").value || "";
+
+        const ctx = buildContext(vendorName, productNames);
+        const rawLines = rawText.split('\n').map(l => l.trim());
+        
+        let processedBlocks = [];
+        let insideMainBody = false;
+        let lateForceIncludeBlock = false;
+
+        const cleanLowerText = rawText.toLowerCase();
+        const hasBodyAnchors = /\bexecutive summary\b/i.test(cleanLowerText) || /\bsummary\b/i.test(cleanLowerText) || /\bintroduction\b/i.test(cleanLowerText);
+
+        rawLines.forEach(line => {
+            if (!line) return;
+            const lowerLine = line.toLowerCase();
+
+            if (!insideMainBody && hasBodyAnchors) {
+                if (/^executive summary\$/i.test(lowerLine) || /^summary\(/i.test(lowerLine) \vert{}\vert{} /^introduction\)/i.test(lowerLine)) {
+                    insideMainBody = true;
+                }
+            } else if (!hasBodyAnchors) {
+                insideMainBody = true;
+            }
+
+            if (/^about the company\$/i.test(lowerLine) || /^contact us\$/i.test(lowerLine) || /^about us\$/i.test(lowerLine)) {
+                lateForceIncludeBlock = true;
+            }
+            if (ctx.vendorLower && lowerLine === `about ${ctx.vendorLower}`) {
+                lateForceIncludeBlock = true;
+            }
+
+            if (insideMainBody && !lateForceIncludeBlock) {
+                if (/^references\(/i.test(lowerLine) \vert{}\vert{} /^sources\)/i.test(lowerLine) || /^bibliography\(/i.test(lowerLine) \vert{}\vert{} /^endnotes\)/i.test(lowerLine)) {
+                    insideMainBody = false;
+                }
+            }
+
+            if (insideMainBody || lateForceIncludeBlock) {
+                if (!isNoiseLine(line)) {
+                    processedBlocks.push(line);
+                }
+            }
+        });
+
+        let totalWords = 0;
+        let usWords = 0;
+        let fallbackToUSSectionState = false;
+
+        processedBlocks.forEach(block => {
+            if (isHeadingLine(block, ctx)) {
+                fallbackToUSSectionState = true;
+                return;
+            }
+
+            if (block.length < 60 && /^[A-Z][A-Za-z\s]{2,30}\$/.test(block) && !isHeadingLine(block, ctx)) {
+                fallbackToUSSectionState = false;
+            }
+
+            const sentences = splitSentences(block);
+            sentences.forEach(sent => {
+                const wc = wordCount(sent);
+                if (wc === 0) return;
+
+                totalWords += wc;
+                if (fallbackToUSSectionState || isUSSentence(sent, ctx)) {
+                    usWords += wc;
+                }
+            });
+        });
+
+        const youWords = Math.max(0, totalWords - usWords);
+        const usPercent = totalWords > 0 ? (usWords / totalWords) * 100 : 0;
+        const yuRatio = totalWords > 0 ? (youWords / totalWords) * 100 : 0;
+
+        document.getElementById("totalWords").textContent = totalWords;
+        document.getElementById("usWords").textContent = usWords;
+        document.getElementById("youWords").textContent = youWords;
+        document.getElementById("yuRatio").textContent = yuRatio.toFixed(1) + "%";
+
+        const ratingBox = document.getElementById("rating");
+        const ratingLabel = document.getElementById("ratingLabel");
+        const ratingMessage = document.getElementById("ratingMessage");
+        
+        ratingBox.className = "rating";
+
+        if (usPercent < 10) {
+            ratingLabel.textContent = "Excellent!";
+            ratingMessage.textContent = "Excellent! Strong focus on your audience. Well done.";
+            ratingBox.classList.add("rating-excellent");
+        } else if (usPercent >= 10 && usPercent < 20) {
+            ratingLabel.textContent = "Pretty Good";
+            ratingMessage.textContent = "Pretty good. Some vendor content detected. Consider doing minor revisions.";
+            ratingBox.classList.add("rating-pretty");
+        } else if (usPercent >= 20 && usPercent < 40) {
+            ratingLabel.textContent = "Warning: Getting Salesy";
+            ratingMessage.textContent = "Warning: Getting salesy. Revise to reduce vendor content.";
+            ratingBox.classList.add("rating-warning", "pulsing");
+        } else {
+            ratingLabel.textContent = "Danger: Too Much Vendor Content";
+            ratingMessage.textContent = "Danger: Too much vendor content. Do not release! Revise to reduce vendor language.";
+            ratingBox.classList.add("rating-danger", "flashing");
+        }
+
+        document.getElementById("results").classList.remove("hidden");
+    } catch (err) {
+        alert("An error occurred during analysis: " + err.message);
+        console.error(err);
+    }
+}
+
+function clearForm() {
+    document.getElementById("vendorName").value = "";
+    document.getElementById("productNames").value = "";
+    document.getElementById("whitepaperText").value = "";
+    document.getElementById("results").classList.add("hidden");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("analyzeBtn").addEventListener("click", analyzeText);
+    document.getElementById("clearBtn").addEventListener("click", clearForm);
+});
+</script>
+</body>
+</html>
+
